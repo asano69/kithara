@@ -46,6 +46,11 @@ PocketBaseのcron設定でルールを定期的に評価し、条件を満たし
 - CLIで、rrule-goのライブラリの振る舞いを実験するプログラムを書く。
 - react-rrule-builder-ts をSolid.JS用に移植する。
 
+## rrule
+- “Fafruch/react-rrule-generator: [NO LONGER MAINTAINED] Recurrence rules generator form built with React”. GitHub, [https://github.com/fafruch/react-rrule-generator](https://github.com/fafruch/react-rrule-generator), (Accessed 2026-07-12)
+- “React RRule Generator”. fafruch.github.io, [https://fafruch.github.io/react-rrule-generator/](https://fafruch.github.io/react-rrule-generator/), (Accessed 2026-07-12)
+- “dcantatore/react-rrule-builder-ts: rrule component for react with mui”. GitHub, [https://github.com/dcantatore/react-rrule-builder-ts](https://github.com/dcantatore/react-rrule-builder-ts), (Accessed 2026-07-12)
+
 
 ### Tech Stack
 - Go
