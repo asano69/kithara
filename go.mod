@@ -6,6 +6,7 @@ require (
 	github.com/pocketbase/pocketbase v0.39.4
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
+	github.com/teambition/rrule-go v1.8.2
 )
 
 require (

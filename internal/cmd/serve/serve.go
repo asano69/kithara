@@ -3,12 +3,16 @@
 package serve
 
 import (
+	"context"
 	"fmt"
-	"github.com/asano69/kithara/internal/assets"
-	"github.com/asano69/kithara/internal/config"
-	"github.com/asano69/kithara/internal/notify"
 	"io/fs"
 	"net/http"
+
+	"github.com/asano69/kithara/internal/assets"
+	"github.com/asano69/kithara/internal/config"
+	"github.com/asano69/kithara/internal/db"
+	"github.com/asano69/kithara/internal/notify"
+	"github.com/asano69/kithara/internal/scheduler"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
@@ -26,6 +30,26 @@ type testNotificationRequest struct {
 // Run opens the database and collection once, registers all drill routes, then
 // starts listening. The database and collection are shared across all sessions.
 func Run(app *pocketbase.PocketBase, cfg *config.Config) error {
+	database, err := db.New(app)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+
+	// The scheduler owns its own goroutine for the lifetime of the process;
+	// it exits when the process does, so a background context is enough.
+	sched := scheduler.New(database)
+	go sched.Run(context.Background())
+
+	// Any change to a note (new one, edited dtstart/rrule, deleted)
+	// invalidates the in-memory schedule, so recompute it from scratch
+	// rather than trying to patch it in place.
+	reloadOnChange := func(e *core.RecordEvent) error {
+		sched.Reload()
+		return e.Next()
+	}
+	app.OnRecordAfterCreateSuccess("notes").BindFunc(reloadOnChange)
+	app.OnRecordAfterUpdateSuccess("notes").BindFunc(reloadOnChange)
+	app.OnRecordAfterDeleteSuccess("notes").BindFunc(reloadOnChange)
 
 	// assetsFS exposes just the "assets/" subdirectory that Vite's default
 	// (unprefixed) base writes hashed JS/CSS bundles into, so they're served
@@ -37,37 +61,21 @@ func Run(app *pocketbase.PocketBase, cfg *config.Config) error {
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
 	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
-		// GET /api/sessions reloads the collection from disk on every request
-		// so decks/cards added or removed since startup are reflected.
 		e.Router.GET("/assets/{path...}", apis.Static(assetsFS, false))
-		// Solid Router decides which screen to render client-side, so both
-		// /drill and / serve the same static shell. This shell is left
-		// unauthenticated on purpose: it's an empty HTML/JS bundle with no
-		// data in it. Every route that actually returns collection data is
-		// guarded above with RequireSuperuserAuth, so an unauthenticated
-		// visitor only ever sees the login screen the SPA renders client-side.
+
 		serveShell := func(re *core.RequestEvent) error {
 			re.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 			http.ServeFileFS(re.Response, re.Request, assets.FS, "index.html")
 			return nil
 		}
-
 		e.Router.GET("/", serveShell)
 
-		// Vite's public/ directory (favicon.svg etc.) is copied to the root
-		// of the build output, so it's served directly rather than under
-		// /assets/.
 		e.Router.GET("/favicon.svg", func(re *core.RequestEvent) error {
 			re.Response.Header().Set("Content-Type", "image/svg+xml")
 			http.ServeFileFS(re.Response, re.Request, assets.FS, "favicon.svg")
 			return nil
 		})
 
-		// The Settings page's "Test connection" button posts here instead of
-		// calling the notification provider directly from the browser: a
-		// direct browser->Gotify request would be blocked by CORS, since
-		// Gotify doesn't grant access to arbitrary browser origins. Making
-		// the request from the server sidesteps that entirely.
 		e.Router.POST("/api/notifications/test", func(re *core.RequestEvent) error {
 			var payload testNotificationRequest
 			if err := re.BindBody(&payload); err != nil {

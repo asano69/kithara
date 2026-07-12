@@ -1,8 +1,8 @@
-// Package notify implements outbound test connections for supported
-// notification providers (currently just Gotify). This exists so the
-// browser never has to make a cross-origin request directly to a user's
-// self-hosted Gotify instance (which Gotify's CORS policy would block);
-// the kithara server makes the request instead and reports the result back.
+// Package notify implements outbound notification delivery to supported
+// providers (currently just Gotify). This exists so the browser never has
+// to make a cross-origin request directly to a user's self-hosted Gotify
+// instance (which Gotify's CORS policy would block); the kithara server
+// makes the request instead.
 package notify
 
 import (
@@ -15,11 +15,25 @@ import (
 	"github.com/asano69/kithara/internal/errs"
 )
 
-const testTimeout = 10 * time.Second
+const requestTimeout = 10 * time.Second
 
-// TestGotify sends a real (but harmless) test message to a Gotify server,
-// verifying both the endpoint URL and the app token are correct.
+// Message is the notification content delivered to a provider.
+type Message struct {
+	Title string
+	Body  string
+}
+
+// TestGotify sends a harmless test message to a Gotify server, verifying
+// both the endpoint URL and the app token are correct.
 func TestGotify(endpoint, token string) error {
+	return SendGotify(endpoint, token, Message{
+		Title: "Kithara",
+		Body:  "Test notification from Kithara settings.",
+	})
+}
+
+// SendGotify delivers msg to a Gotify server at endpoint using token.
+func SendGotify(endpoint, token string, msg Message) error {
 	if endpoint == "" || token == "" {
 		return errs.New("endpoint and token are required")
 	}
@@ -34,8 +48,8 @@ func TestGotify(endpoint, token string) error {
 	msgURL.RawQuery = q.Encode()
 
 	body, err := json.Marshal(map[string]any{
-		"title":    "Kithara",
-		"message":  "Test notification from Kithara settings.",
+		"title":    msg.Title,
+		"message":  msg.Body,
 		"priority": 1,
 	})
 	if err != nil {
@@ -48,7 +62,7 @@ func TestGotify(endpoint, token string) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: testTimeout}
+	client := &http.Client{Timeout: requestTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return errs.Newf("could not reach the endpoint: %v", err)

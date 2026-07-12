@@ -56,7 +56,9 @@ dev-back: clean
 
 .PHONY: test
 test:
+	cd frontend && pnpm test
 	go test ./...
+
 
 format:
 	cd frontend && pnpm exec prettier --write "src/**/*.{js,jsx,css}"
