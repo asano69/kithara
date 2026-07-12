@@ -928,9 +928,7 @@ func init() {
 					}
 				],
 				"id": "pbc_4041782348",
-				"indexes": [
-					"CREATE UNIQUE INDEX ` + "`" + `idx_6exueonnnq` + "`" + ` ON ` + "`" + `notes` + "`" + ` (` + "`" + `position` + "`" + `)"
-				],
+				"indexes": [],
 				"listRule": null,
 				"name": "notes",
 				"system": false,
