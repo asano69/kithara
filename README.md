@@ -39,6 +39,8 @@ notifications
 - 新規イベント登録ページ
 - イベント詳細編集ページ
 - イベント一覧ページ
+デバッグ
+- notification/testと、shedule/debugがある。serve.goのハンドラを見ればわかる。
 
 ## Plan
 
