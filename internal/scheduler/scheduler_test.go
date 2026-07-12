@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/asano69/kithara/internal/db"
+	"github.com/asano69/cithara/internal/db"
 )
 
 func TestParseRule(t *testing.T) {
@@ -81,7 +81,7 @@ func TestParseRulePastDtstartAlwaysReturnsFutureNext(t *testing.T) {
 
 func TestBuildMessageTitle(t *testing.T) {
 	got := buildMessageTitle(db.Note{Label: "Water plants"})
-	want := "Kithara: Water plants"
+	want := "Cithara: Water plants"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}

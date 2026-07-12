@@ -8,11 +8,11 @@ import (
 	"io/fs"
 	"net/http"
 
-	"github.com/asano69/kithara/internal/assets"
-	"github.com/asano69/kithara/internal/config"
-	"github.com/asano69/kithara/internal/db"
-	"github.com/asano69/kithara/internal/notify"
-	"github.com/asano69/kithara/internal/scheduler"
+	"github.com/asano69/cithara/internal/assets"
+	"github.com/asano69/cithara/internal/config"
+	"github.com/asano69/cithara/internal/db"
+	"github.com/asano69/cithara/internal/notify"
+	"github.com/asano69/cithara/internal/scheduler"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"

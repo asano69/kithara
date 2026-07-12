@@ -1,4 +1,4 @@
-// Package errs provides the standard error type for kithara.
+// Package errs provides the standard error type for cithara.
 package errs
 
 import "fmt"

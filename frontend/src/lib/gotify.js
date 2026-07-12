@@ -1,8 +1,8 @@
-// Calls kithara's own /api/notifications/test route instead of hitting the
+// Calls cithara's own /api/notifications/test route instead of hitting the
 // user's Gotify server directly from the browser. A direct browser->Gotify
 // request gets blocked by CORS (Gotify doesn't send an
 // Access-Control-Allow-Origin header for arbitrary browser origins), so the
-// kithara backend makes the outbound request server-side and reports the
+// cithara backend makes the outbound request server-side and reports the
 // result back over the same origin as the rest of the app's API.
 import pb from "./pb";
 

@@ -1,6 +1,6 @@
 // Ported from react-rrule-builder-ts/src/components/Repeat/utils.ts.
 // getLabelSize was dropped: it only existed to size MUI <InputLabel>s, which
-// Kithara doesn't use (plain <select>/<input> + Tailwind instead).
+// Cithara doesn't use (plain <select>/<input> + Tailwind instead).
 
 import { Frequency } from "rrule";
 import { Months, Weekday, WeekdayExtras } from "./types";

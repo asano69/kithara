@@ -1,4 +1,4 @@
-module github.com/asano69/kithara
+module github.com/asano69/cithara
 
 go 1.25.9
 

@@ -1,5 +1,5 @@
 // Ported from react-rrule-builder-ts/src/utils/buildRRuleString.ts.
-// The original took a `dateAdapter` (MUI/luxon) to convert dates. Kithara
+// The original took a `dateAdapter` (MUI/luxon) to convert dates. Cithara
 // treats dates as naive (see CLAUDE.md), so this version takes plain Date
 // objects directly and does no timezone conversion at all.
 //

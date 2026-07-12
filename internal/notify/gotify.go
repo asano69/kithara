@@ -1,7 +1,7 @@
 // Package notify implements outbound notification delivery to supported
 // providers (currently just Gotify). This exists so the browser never has
 // to make a cross-origin request directly to a user's self-hosted Gotify
-// instance (which Gotify's CORS policy would block); the kithara server
+// instance (which Gotify's CORS policy would block); the cithara server
 // makes the request instead.
 package notify
 
@@ -12,7 +12,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/asano69/kithara/internal/errs"
+	"github.com/asano69/cithara/internal/errs"
 )
 
 const requestTimeout = 10 * time.Second
@@ -27,8 +27,8 @@ type Message struct {
 // both the endpoint URL and the app token are correct.
 func TestGotify(endpoint, token string) error {
 	return SendGotify(endpoint, token, Message{
-		Title: "Kithara",
-		Body:  "Test notification from Kithara settings.",
+		Title: "Cithara",
+		Body:  "Test notification from Cithara settings.",
 	})
 }
 

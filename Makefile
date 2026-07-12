@@ -4,12 +4,6 @@ APP := $(notdir $(CURDIR))
 PORTS := 3000 3001
 
 
-init:
-	fastmod --hidden myapp $(APP) --glob '!Makefile'
-	find . -depth \( -type f -o -type d \) -name '*myapp*' | while read -r f; do \
-		mv -- "$$f" "$$(dirname "$$f")/$$(basename "$$f" | sed 's/myapp/$(APP))/g')"; \
-	done
-
 .PHONY: frontend-deps
 frontend-deps:
 	cd frontend && pnpm install
@@ -35,7 +29,7 @@ kill-ports:
 
 .PHONY: server
 server: kill-ports
-	#./kithara migrate up --dir=pb_data
+	#./cithara migrate up --dir=pb_data
 	./$(BINARY) superuser upsert admin@mail.internal password --dir=pb_data
 	./$(BINARY) serve
 
@@ -65,7 +59,7 @@ format:
 
 migrate-collections:
 	ls -1 migrations/*.go | sort | head -n -1 | xargs rm -f
-	yes | go run ./cmd/kithara migrate collections # 開発初期限定
+	yes | go run ./cmd/cithara migrate collections # 開発初期限定
 
 
 

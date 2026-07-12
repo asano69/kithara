@@ -14,9 +14,9 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"github.com/asano69/kithara/internal/db"
-	"github.com/asano69/kithara/internal/errs"
-	"github.com/asano69/kithara/internal/notify"
+	"github.com/asano69/cithara/internal/db"
+	"github.com/asano69/cithara/internal/errs"
+	"github.com/asano69/cithara/internal/notify"
 	"sync"
 	"time"
 
@@ -231,7 +231,7 @@ func (s *Scheduler) fireDue(entries []entry) []entry {
 	return next
 }
 
-// buildMessageTitle formats the notification title as "Kithara: label".
+// buildMessageTitle formats the notification title as "Cithara: label".
 func buildMessageTitle(note db.Note) string {
 	return fmt.Sprintf("[CTR] %s", note.Label)
 }

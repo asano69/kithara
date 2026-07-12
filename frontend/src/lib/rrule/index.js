@@ -1,4 +1,4 @@
-// Public entry point for Kithara's RRULE logic layer (Stage 1 of the port).
+// Public entry point for Cithara's RRULE logic layer (Stage 1 of the port).
 // Consumers should import from "lib/rrule", not from the individual files.
 
 export {
