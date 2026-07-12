@@ -55,3 +55,26 @@ func TestNextTimerPicksEarliest(t *testing.T) {
 		t.Errorf("earliest entry drifted unexpectedly: %v", d)
 	}
 }
+
+func TestParseRulePastDtstartAlwaysReturnsFutureNext(t *testing.T) {
+	past := time.Now().UTC().Add(-24 * time.Hour)
+	note := db.Note{
+		ID:      "note1",
+		Dtstart: past.Format("20060102T150405"),
+		RRule:   "FREQ=MINUTELY;INTERVAL=1",
+	}
+
+	rule, err := parseRule(note)
+	if err != nil {
+		t.Fatalf("parseRule() error = %v", err)
+	}
+
+	now := time.Now().UTC()
+	next := rule.After(now, false)
+	if next.IsZero() {
+		t.Fatal("expected a non-zero next occurrence")
+	}
+	if !next.After(now) {
+		t.Errorf("next = %v, want a time strictly after now (%v)", next, now)
+	}
+}

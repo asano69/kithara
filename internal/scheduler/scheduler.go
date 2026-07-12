@@ -50,11 +50,11 @@ type Scheduler struct {
 	db     *db.Database
 	reload chan struct{}
 
-	// mu guards snapshot, which mirrors whatever entries Run() is
-	// currently holding. It exists only so Snapshot() can be called
-	// safely from an HTTP handler goroutine, which is not the same
-	// goroutine that owns entries inside Run()'s select loop.
-	mu       sync.Mutex
+	// mu guards snapshot, which Run() publishes every time it recomputes
+	// or advances the schedule. This lets Snapshot() be called safely
+	// from any goroutine (e.g. an HTTP handler) without touching Run()'s
+	// internal state directly.
+	mu       sync.RWMutex
 	snapshot []ScheduleEntry
 }
 
@@ -80,13 +80,12 @@ func (s *Scheduler) Reload() {
 }
 
 // Snapshot returns the scheduler's current in-memory view of each note's
-// next occurrence, sorted by NoteID for stable output. This is a
-// debugging aid only — nothing here is persisted, and the result reflects
-// whatever the scheduler goroutine last computed, which may be a moment
-// out of date if a reload is in flight.
+// next occurrence. This is a debugging aid only — nothing here is
+// persisted, and the result reflects whatever Run() last computed, which
+// may be a moment out of date if a reload is in flight.
 func (s *Scheduler) Snapshot() []ScheduleEntry {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	out := make([]ScheduleEntry, len(s.snapshot))
 	copy(out, s.snapshot)
