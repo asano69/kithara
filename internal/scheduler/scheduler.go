@@ -8,10 +8,12 @@
 // scratch — this is simpler and safer than patching the in-memory schedule
 // incrementally, and the note count is small enough that a full reload is
 // cheap.
+
 package scheduler
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/asano69/kithara/internal/db"
@@ -30,11 +32,30 @@ type entry struct {
 	next time.Time
 }
 
+// ScheduleEntry is a read-only view of one note's next scheduled
+// occurrence, exposed for debugging via Scheduler.Snapshot. It carries no
+// behavior — only what a person troubleshooting a missed notification
+// needs to see.
+type ScheduleEntry struct {
+	NoteID  string    `json:"noteId"`
+	Label   string    `json:"label"`
+	Dtstart string    `json:"dtstart"`
+	RRule   string    `json:"rrule"`
+	Next    time.Time `json:"next"`
+}
+
 // Scheduler waits for the next due note occurrence and sends a
 // notification for it. Create one with New and start it with Run.
 type Scheduler struct {
 	db     *db.Database
 	reload chan struct{}
+
+	// mu guards snapshot, which mirrors whatever entries Run() is
+	// currently holding. It exists only so Snapshot() can be called
+	// safely from an HTTP handler goroutine, which is not the same
+	// goroutine that owns entries inside Run()'s select loop.
+	mu       sync.Mutex
+	snapshot []ScheduleEntry
 }
 
 // New creates a Scheduler backed by database. Call Run to start it.
@@ -58,11 +79,47 @@ func (s *Scheduler) Reload() {
 	}
 }
 
+// Snapshot returns the scheduler's current in-memory view of each note's
+// next occurrence, sorted by NoteID for stable output. This is a
+// debugging aid only — nothing here is persisted, and the result reflects
+// whatever the scheduler goroutine last computed, which may be a moment
+// out of date if a reload is in flight.
+func (s *Scheduler) Snapshot() []ScheduleEntry {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	out := make([]ScheduleEntry, len(s.snapshot))
+	copy(out, s.snapshot)
+	return out
+}
+
+// setSnapshot replaces the exported snapshot to match entries. Called
+// from Run() every time entries changes (after a reload and after firing
+// due notifications), never concurrently, so no lock is needed on the
+// entries side.
+func (s *Scheduler) setSnapshot(entries []entry) {
+	next := make([]ScheduleEntry, 0, len(entries))
+	for _, e := range entries {
+		next = append(next, ScheduleEntry{
+			NoteID:  e.note.ID,
+			Label:   e.note.Label,
+			Dtstart: e.note.Dtstart,
+			RRule:   e.note.RRule,
+			Next:    e.next,
+		})
+	}
+
+	s.mu.Lock()
+	s.snapshot = next
+	s.mu.Unlock()
+}
+
 // Run loads the schedule and waits for occurrences to become due, sending
 // a notification for each, until ctx is cancelled. It blocks, so callers
 // typically start it with `go sched.Run(ctx)`.
 func (s *Scheduler) Run(ctx context.Context) {
 	entries := s.mustLoad()
+	s.setSnapshot(entries)
 
 	for {
 		timerC, timer := nextTimer(entries)
@@ -75,9 +132,11 @@ func (s *Scheduler) Run(ctx context.Context) {
 		case <-s.reload:
 			stopTimer(timer)
 			entries = s.mustLoad()
+			s.setSnapshot(entries)
 
 		case <-timerC:
 			entries = s.fireDue(entries)
+			s.setSnapshot(entries)
 		}
 	}
 }

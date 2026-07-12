@@ -87,6 +87,10 @@ func Run(app *pocketbase.PocketBase, cfg *config.Config) error {
 			return re.JSON(http.StatusOK, map[string]bool{"ok": true})
 		}).Bind(apis.RequireSuperuserAuth())
 
+		e.Router.GET("/api/schedule/debug", func(re *core.RequestEvent) error {
+			return re.JSON(http.StatusOK, sched.Snapshot())
+		}).Bind(apis.RequireSuperuserAuth())
+
 		return e.Next()
 	})
 

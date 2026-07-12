@@ -12,7 +12,7 @@ import Login from "./routes/Login";
 import RRuleTest from "./routes/RRuleTest";
 import NewEntry from "./routes/NewEntry";
 import EditEntry from "./routes/EditEntry";
-
+import Stats from "./routes/Stats";
 
 // AuthGate blocks the whole app behind Login until a valid superuser
 // session exists, tracking pb.authStore so it reacts immediately to
@@ -40,6 +40,7 @@ render(
         <Route path="/rrule-test" component={RRuleTest} />
         <Route path="/new" component={NewEntry} />
         <Route path="/edit/:id" component={EditEntry} />
+     <Route path="/stats" component={Stats} />
       </Router>
     </AuthGate>
   ),
