@@ -7,32 +7,41 @@ import RRuleBuilder from "../components/RRuleBuilder/RRuleBuilder";
 import { BuilderStoreProvider, useBuilderStoreContext } from "../lib/rrule";
 import pb from "../lib/pb";
 
-// Dates are naive (see CLAUDE.md), so this only ever reads the UTC fields
-// of the Date, never the local timezone ones.
-function toDateOnlyString(date) {
+
+// Combines the RRuleBuilder's date-only startDate with a separately
+// entered time-of-day into an RFC 5545 floating-time DATE-TIME string:
+// "YYYYMMDDTHHMMSS" (no trailing "Z", which is what would make it UTC
+// instead of floating). This is naive on purpose (see CLAUDE.md, "don't
+// use timezones"): it's just the wall-clock time the notification should
+// fire at, same as a journal entry's date.
+function toDtstartString(date, time) {
   if (!date) return "";
   const y = date.getUTCFullYear();
   const m = String(date.getUTCMonth() + 1).padStart(2, "0");
   const d = String(date.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  const [hh, mm] = (time || "00:00").split(":");
+  return `${y}${m}${d}T${hh.padStart(2, "0")}${mm.padStart(2, "0")}00`;
 }
 
+
 // The store's rruleString includes a leading "DTSTART:" line, but dtstart
-// is stored in its own field, so only the "RRULE:" line is kept here.
+// is stored in its own field. rrule-go's StrToRRule() expects the bare
+// rule value (no "RRULE:" prefix), so that's stripped here too.
 function extractRRuleLine(rruleString) {
-  if (!rruleString) return "";
-  const line = rruleString.split("\n").find((l) => l.startsWith("RRULE:"));
-  return line ?? rruleString;
-}
+   if (!rruleString) return "";
+   const line = rruleString.split("\n").find((l) => l.startsWith("RRULE:"));
+  return (line ?? rruleString).replace(/^RRULE:/, "");
+ }
 
 // New notes are appended after the current last one. Good enough for a
 // single-user app; see README's note on why full LexoRank isn't needed.
 async function nextPosition() {
-  const last = await pb
-    .collection("notes")
-    .getFirstListItem("", { sort: "-position" })
-    .catch(() => null);
-  return last ? last.position + 1 : 0;
+  try {
+    const last = await pb.collection("notes").getFirstListItem("", { sort: "-position" });
+    return last.position + 1;
+  } catch {
+    return 1;
+  }
 }
 
 function NewEntryForm() {
@@ -40,6 +49,9 @@ function NewEntryForm() {
   const store = useBuilderStoreContext();
   const [label, setLabel] = createSignal("");
   const [description, setDescription] = createSignal("");
+ // Time-of-day for the notification. RRuleBuilder's own date input is
+  // date-only, so this is tracked separately and combined at submit time.
+  const [time, setTime] = createSignal("09:00");
   const [pending, setPending] = createSignal(false);
   const [error, setError] = createSignal("");
 
@@ -59,13 +71,14 @@ function NewEntryForm() {
       await pb.collection("notes").create({
         label: label(),
         description: description(),
-        dtstart: toDateOnlyString(store.startDate()),
+         dtstart: toDtstartString(store.startDate(), time()),
         rrule: extractRRuleLine(store.rruleString()),
         position,
       });
       navigate("/");
-    } catch {
-      setError("Failed to save the entry.");
+    } catch (err) {
+        console.error("create note failed:", err?.response ?? err);
+      setError(err?.response?.message ?? "Failed to save the entry.");
     } finally {
       setPending(false);
     }
@@ -96,6 +109,18 @@ function NewEntryForm() {
       </label>
 
       <RRuleBuilder enableYearlyInterval />
+
+      <label class="flex flex-col gap-1 text-sm">
+        <span>Notify at</span>
+        <input
+          type="time"
+          value={time()}
+          onInput={(e) => setTime(e.target.value)}
+          required
+          class="w-32 rounded-md border border-[var(--color-border-soft)] bg-[var(--color-bg)] px-2 py-1 text-[var(--color-text)]"
+        />
+      </label>
+
 
       {error() && <p class="text-sm text-[#dc3545]">{error()}</p>}
 
