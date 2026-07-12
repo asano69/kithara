@@ -64,7 +64,7 @@ format:
 	cd frontend && pnpm exec prettier --write "src/**/*.{js,jsx,css}"
 
 migrate-collections:
-	rm -f migrations/*.go
+	ls -1 migrations/*.go | sort | head -n -1 | xargs rm -f
 	yes | go run ./cmd/kithara migrate collections # 開発初期限定
 
 
