@@ -233,7 +233,7 @@ func (s *Scheduler) fireDue(entries []entry) []entry {
 
 // buildMessageTitle formats the notification title as "Cithara: label".
 func buildMessageTitle(note db.Note) string {
-	return fmt.Sprintf("[CTR] %s", note.Label)
+	return fmt.Sprintf("[🪉] %s", note.Label)
 }
 
 // buildMessageBody formats the notification body as "MEMO: description".
