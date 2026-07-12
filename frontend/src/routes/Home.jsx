@@ -1,6 +1,12 @@
-import { onMount, onCleanup, createSignal, For } from "solid-js";
+import { createSignal, onMount, For } from "solid-js";
 import { A } from "@solidjs/router";
-import Sortable from "sortablejs";
+import {
+  DragDropProvider,
+  DragDropSensors,
+  SortableProvider,
+  createSortable,
+  closestCenter,
+} from "@thisbeyond/solid-dnd";
 import NavBar from "../components/NavBar";
 import pb from "../lib/pb";
 
@@ -36,13 +42,22 @@ function setDtstartToday(dtstart) {
 }
 
 function NoteItem(props) {
+  // The whole item is the drag source (not just the ⋮⋮ icon): solid-dnd's
+  // handle-only pattern relies on spreading dragActivators onto a
+  // sub-element, which is broken on Solid >=1.6 (solidjs/solid#1328).
+  // Making the whole row draggable sidesteps that bug. The pointer sensor
+  // still requires a movement threshold before a drag starts, so clicking
+  // the Edit link or the day-shift buttons still works normally.
+  const sortable = createSortable(props.note.id);
+
   return (
     <li
-      data-id={props.note.id}
+      use:sortable
+      classList={{ "opacity-40": sortable.isActiveDraggable }}
       class="flex items-start gap-3 rounded-md border border-[var(--color-border-soft)] bg-[var(--color-field)] p-4 shadow-[0_1px_3px_0_var(--color-shadow)]"
     >
       <div
-        class="drag-handle mt-1 cursor-grab select-none text-lg leading-none text-[var(--color-border-soft)]"
+        class="mt-1 cursor-grab select-none text-lg leading-none text-[var(--color-border-soft)]"
         title="Drag to reorder"
         aria-label="Drag to reorder"
       >
@@ -83,8 +98,6 @@ function NoteItem(props) {
 
 export default function Home() {
   const [notes, setNotes] = createSignal([]);
-  let listRef;
-  let sortable;
 
   const loadNotes = async () => {
     const list = await pb
@@ -93,51 +106,35 @@ export default function Home() {
     setNotes(list);
   };
 
-onMount(async () => {
-  await loadNotes();
-  sortable = Sortable.create(listRef, {
-    handle: ".drag-handle",
-    animation: 150,
-    onEnd: (evt) => {
-      const { oldIndex, newIndex, from, item } = evt;
-      if (oldIndex === newIndex) return;
+  onMount(loadNotes);
 
-      // SortableJS already moved `item` in the real DOM before this
-      // callback fires. Move it back to its original slot so Solid's
-      // <For> starts from the DOM layout it still recognizes, and let
-      // the reactive update below (via handleReorder -> setNotes) own
-      // the actual reordering instead of fighting with sortable's move.
-      const referenceNode = from.children[oldIndex];
-      if (referenceNode) {
-        from.insertBefore(item, referenceNode);
-      } else {
-        from.appendChild(item);
-      }
+  const ids = () => notes().map((note) => note.id);
 
-      handleReorder(oldIndex, newIndex);
-    },
-  });
-});
-
-  onCleanup(() => sortable?.destroy());
-
-  // Moves the note at fromIndex to toIndex, then persists the new
-  // position for every note whose position actually changed.
-  const handleReorder = async (fromIndex, toIndex) => {
-    if (fromIndex === toIndex) return;
-    const reordered = [...notes()];
-    const [moved] = reordered.splice(fromIndex, 1);
-    reordered.splice(toIndex, 0, moved);
-    setNotes(reordered);
-
+  // Persists position for every note whose position actually changed,
+  // then reloads from the server so the UI reflects the confirmed state.
+  const persistOrder = async (orderedNotes) => {
     await Promise.all(
-      reordered.map((note, i) => {
+      orderedNotes.map((note, i) => {
         const position = i + 1;
         if (note.position === position) return null;
         return pb.collection("notes").update(note.id, { position });
       }),
     );
     await loadNotes();
+  };
+
+  const onDragEnd = ({ draggable, droppable }) => {
+    if (!draggable || !droppable) return;
+    const currentIds = ids();
+    const fromIndex = currentIds.indexOf(draggable.id);
+    const toIndex = currentIds.indexOf(droppable.id);
+    if (fromIndex === toIndex) return;
+
+    const reordered = [...notes()];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    setNotes(reordered);
+    persistOrder(reordered);
   };
 
   // Shifts a note's dtstart by deltaDays (0 means "jump to today").
@@ -154,13 +151,18 @@ onMount(async () => {
   return (
     <div class="mx-auto flex min-h-screen w-full max-w-xl flex-col items-center bg-[var(--color-bg)] px-6 py-12 text-[var(--color-text)]">
       <NavBar />
-      <ul ref={listRef} class="flex w-full flex-col gap-3">
-        <For each={notes()}>
-          {(note) => (
-            <NoteItem note={note} onShift={(delta) => handleShift(note, delta)} />
-          )}
-        </For>
-      </ul>
+      <DragDropProvider onDragEnd={onDragEnd} collisionDetector={closestCenter}>
+        <DragDropSensors />
+        <ul class="flex w-full flex-col gap-3">
+          <SortableProvider ids={ids()}>
+            <For each={notes()}>
+              {(note) => (
+                <NoteItem note={note} onShift={(delta) => handleShift(note, delta)} />
+              )}
+            </For>
+          </SortableProvider>
+        </ul>
+      </DragDropProvider>
     </div>
   );
 }
