@@ -49,7 +49,7 @@ RUN apk add --no-cache \
     busybox-extras \
     tzdata \
     bash \
-    curl \
+    curl
  
 RUN addgroup -g 1000 cithara && \
     adduser -D -u 1000 -G cithara cithara
