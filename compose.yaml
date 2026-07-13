@@ -1,0 +1,29 @@
+services:
+  cithara:
+    image: ghcr.io/asano69/cithara:latest
+    container_name: cithara
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - cithara.env
+    volumes:
+      - ./data:/cithara/pb_data
+        #- /etc/ssl/certs/root_ca.crt:/certs/root_ca.crt:ro # optional
+    environment:
+      - TZ=Europe/London
+      #
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=3000
+      #networks:
+    #  - traefik_net
+    #labels:
+    #  - traefik.enable=true
+    #  - traefik.http.routers.cithara.rule=Host(`cithara.app.internal`)
+#volumes:
+#  data:
+
+#networks:
+#  traefik_net:
+#    external: true
+

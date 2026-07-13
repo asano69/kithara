@@ -3,9 +3,10 @@
 import { createSignal, createResource, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import RRuleBuilder from "./RRuleBuilder/RRuleBuilder";
+import Button from "./Button";
 import { BuilderStoreProvider, useBuilderStoreContext } from "../lib/rrule";
 import { loadTimezone, localToUtc, utcToLocal } from "../lib/tz";
-import pb from "../lib/pb";
+import pb from "../lib/pb"
 
 // Combines the RRuleBuilder's date-only startDate with a separately
 // entered time-of-day into a naive local "YYYYMMDDTHHMMSS" string, then
@@ -62,6 +63,7 @@ async function nextPosition() {
   }
 }
 
+
 function NoteFormFields(props) {
   const store = useBuilderStoreContext();
   const navigate = useNavigate();
@@ -73,6 +75,7 @@ function NoteFormFields(props) {
     extractTime(utcToLocal(props.note?.dtstart, props.tz)),
   );
   const [pending, setPending] = createSignal(false);
+  const [deleting, setDeleting] = createSignal(false);
   const [error, setError] = createSignal("");
 
   const handleSubmit = async (e) => {
@@ -105,6 +108,24 @@ function NoteFormFields(props) {
       setError(err?.response?.message ?? "Failed to save the entry.");
     } finally {
       setPending(false);
+    }
+  };
+
+  // Deletes the note being edited. Only rendered when props.note exists,
+  // so there is nothing to delete on the "new entry" form.
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete "${props.note.label}"? This cannot be undone.`)) {
+      return;
+    }
+    setError("");
+    setDeleting(true);
+    try {
+      await pb.collection("notes").delete(props.note.id);
+      navigate("/");
+    } catch (err) {
+      console.error("delete note failed:", err?.response ?? err);
+      setError(err?.response?.message ?? "Failed to delete the entry.");
+      setDeleting(false);
     }
   };
 
@@ -154,9 +175,19 @@ function NoteFormFields(props) {
 
       {error() && <p class="text-sm text-[#dc3545]">{error()}</p>}
 
-      <button type="submit" class="btn" disabled={pending()}>
-        {pending() ? "Saving…" : "Save"}
-      </button>
+      <div class="flex flex-wrap items-center">
+        <button type="submit" class="btn" disabled={pending() || deleting()}>
+          {pending() ? "Saving…" : "Save"}
+        </button>
+        {props.note && (
+          <Button
+            variant="danger"
+            value={deleting() ? "Deleting…" : "Delete"}
+            disabled={pending() || deleting()}
+            onClick={handleDelete}
+          />
+        )}
+      </div>
     </form>
   );
 }
@@ -176,3 +207,4 @@ export default function NoteForm(props) {
     </BuilderStoreProvider>
   );
 }
+
