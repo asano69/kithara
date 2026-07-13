@@ -56,7 +56,7 @@ RUN addgroup -g 1000 cithara && \
 
 COPY --from=go-builder /build/cithara /usr/local/bin/cithara
 
-RUN mkdir -p /certs /cithara/data /cithara/cards /cithara/hooks
+RUN mkdir -p /certs /cithara/data
 RUN chown -R 1000:1000 /cithara
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
