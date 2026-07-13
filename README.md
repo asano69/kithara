@@ -5,6 +5,14 @@
 
 ## Introduction 
 <img src="frontend/public/favicon.svg" width="100" align="right" />
+Cithara (Kitara) is a reminder app designed to help people maintain and improve their daily habits and routines. To ensure that recurring habits, household chores, and periodic events are not overlooked, it allows users to define recurrence rules for events using iCalendar (RFC 5545) and sends notifications through a message server (Gotify).
+
+Many well-designed task managers offer a repeat option based on the completion date, but configuring such behavior is often somewhat cumbersome. Cithara places particular emphasis on making it easy to change the reference date from which a recurrence interval is calculated.
+
+Cithara does not concern itself with whether a recurring task was actually completed. It simply tells you, once a week, that something is due today. If you completed the task yesterday, complete it today, or plan to do it tomorrow, you can reset the schedule around that date as many times as you like. Cithara is a tool for creating opportunities to take action.
+
+Cithara can also send notifications for one-time events. However, in such cases, a conventional ToDo app or calendar may be a better fit. Cithara is focused on supporting the formation and maintenance of recurring behaviors, and one-time notifications are not at the core of its scope.
+
 
 Cithara (きたら) は、生活習慣を整えることを目的としたリマインダーアプリです。定期的に行いたい習慣・家事・行事をやり逃さないように、イベントに対してiCalendar(RFC 5545)の反復規則を設定し、メッセージサーバ（Gotify）に通知を送信します。
 
